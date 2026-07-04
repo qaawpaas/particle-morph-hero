@@ -1,17 +1,19 @@
 /* Real-frame verify shot: load index.html at a pinned scroll progress, let the
    intro + several rAF frames render, screenshot, report console errors.
    Usage: node verify-shot.js <p> <outfile>   e.g. node verify-shot.js 0 reference/clone-brain.png
-   Dev-only. Not part of the runtime. */
+   Needs: `npm install` (playwright-core) + a locally-installed Google Chrome.
+   Custom binary: set CHROME_PATH=/path/to/chrome. Dev-only, not part of the runtime. */
 const { chromium } = require("playwright-core");
 const path = require("path");
 
 const P = process.argv[2] ?? "0";
 const OUT = process.argv[3] ?? "reference/_shot.png";
-const CACHE = require("os").homedir() + "/Library/Caches/ms-playwright/chromium-1228/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing";
+const CHROME = process.env.CHROME_PATH || "";           // optional explicit binary path
 
 (async () => {
   const browser = await chromium.launch({
-    executablePath: CACHE,
+    // portable: use the system Google Chrome (channel), or an explicit CHROME_PATH
+    ...(CHROME ? { executablePath: CHROME } : { channel: "chrome" }),
     args: ["--enable-unsafe-swiftshader","--use-gl=angle","--use-angle=swiftshader",
            "--ignore-gpu-blocklist","--allow-file-access-from-files"],
   });
