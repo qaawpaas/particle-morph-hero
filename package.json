@@ -1,0 +1,16 @@
+{
+  "name": "moozg-site",
+  "version": "1.0.0",
+  "description": "Копия **концепции** Dala / Green Chameleon: одна particle-система, которая **морфится между формами при скролле** — мозг → сфера → лампочка — с разлётами на переходах, кросс-фейдом текста и сборкой на входе. Не статичная 3D-картинка, а сценарий с движением.",
+  "main": "build-shapes.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "playwright-core": "^1.55.0"
+  }
+}
