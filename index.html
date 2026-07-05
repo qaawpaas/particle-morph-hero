@@ -4,10 +4,10 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Dala — Unlock collective wisdom</title>
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600&display=swap" rel="stylesheet" />
+<!-- Inter self-hosted (vendor/fonts) — zero external font CDN -->
 <style>
+  @font-face{font-family:"Inter";font-style:normal;font-weight:100 900;font-display:swap;
+    src:url("./vendor/fonts/inter-latin-wght-normal.woff2") format("woff2");}
   :root{
     --void:#0b0b0c; --bone:#ffffff; --iris:#6c4ce0; --amber:#e6a20c;
     --ash:#afafaf; --dim:#8a8a8a; --max:1280px;
@@ -177,12 +177,12 @@
   })();
   </script>
 
-  <script type="importmap">{ "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }</script>
+  <script type="importmap">{ "imports": { "three": "./vendor/three.module.js" } }</script>
   <script type="module">
   import * as THREE from "three";
-  import { EffectComposer } from "https://unpkg.com/three@0.160.0/examples/jsm/postprocessing/EffectComposer.js";
-  import { RenderPass } from "https://unpkg.com/three@0.160.0/examples/jsm/postprocessing/RenderPass.js";
-  import { UnrealBloomPass } from "https://unpkg.com/three@0.160.0/examples/jsm/postprocessing/UnrealBloomPass.js";
+  import { EffectComposer } from "./vendor/jsm/postprocessing/EffectComposer.js";
+  import { RenderPass } from "./vendor/jsm/postprocessing/RenderPass.js";
+  import { UnrealBloomPass } from "./vendor/jsm/postprocessing/UnrealBloomPass.js";
 
   /* ============================================================
      DALA clone — scroll-scrubbed particle morph.

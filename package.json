@@ -11,6 +11,8 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "playwright-core": "^1.55.0"
+    "@fontsource-variable/inter": "^5.2.8",
+    "playwright-core": "^1.55.0",
+    "three": "^0.160.0"
   }
 }
