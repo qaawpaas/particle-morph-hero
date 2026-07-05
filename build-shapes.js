@@ -7,7 +7,7 @@ const fs = require("fs"), path = require("path");
 const DIR = __dirname;
 const BRAIN = JSON.parse(fs.readFileSync(path.join(DIR, "points.brain.js"), "utf8")
   .replace(/^\s*window\.__BRAIN__\s*=\s*/, "").replace(/;\s*$/, ""));
-const N = 11000;
+const N = 14000;   // more particles -> denser gyri detail
 
 let seed = 20260704;
 const rnd = () => (seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296;

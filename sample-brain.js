@@ -38,7 +38,7 @@ function decodePNG(buf){
 
 const IN = process.argv[2] || "brain-src.png";
 const N = parseInt(process.argv[3] || "22000", 10);
-const CONTOUR_FRAC = 0.52;
+const CONTOUR_FRAC = 0.40;   // more particles left for interior gyri detail
 const TH = 0.14;                                          // luma above this = "drawn / brain"
 const { w, h, bpp, px } = decodePNG(fs.readFileSync(path.join(__dirname, IN)));
 
@@ -94,13 +94,14 @@ for (let k = 0; k < nC; k++){
 }
 // 2) INTERIOR — edge-weighted fill (gyri folds), coloured by brightness
 let made = pts.length/3, guard = 0;
-const gMax = maxG + 0.12;
+const gMax = maxG + 0.04;
 while (made < N && guard < N*500){
   guard++;
   const fc = fillCells.length ? fillCells[(rnd()*fillCells.length)|0] : contourCells[(rnd()*contourCells.length)|0];
   const cx = fc % cw, cy = (fc/cw)|0;
   const xi = Math.min(w-1, cx*C + (rnd()*C|0)), yi = Math.min(h-1, cy*C + (rnd()*C|0)), idx = yi*w+xi;
-  if (rnd()*gMax > grad[idx] + 0.12) continue;              // land on interior fold edges
+  const gw = grad[idx]*grad[idx]/maxG;                     // sharpen -> particles snap onto the gyri fold lines
+  if (rnd()*gMax > gw + 0.04) continue;                    // dense on strong sulci/gyri edges, sparse in flats
   const bri = Math.max(0.1, Math.min(1, (L[idx]-0.42)*1.7 + 0.5));
   push(xi, yi, bri, 0.0);
   made++;
