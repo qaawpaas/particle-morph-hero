@@ -16,7 +16,8 @@ function hash3(x, y, z){ let h = Math.sin(x*127.1 + y*311.7 + z*74.7) * 43758.54
 
 const brain = new Array(N * 3), bulb = new Array(N * 3), earth = new Array(N * 3), bri = new Array(N);
 const land = new Array(N).fill(0);                          // per-point: 1 = land (continent), 0 = ocean/grid
-const bn = BRAIN.n, bp = BRAIN.pts;
+const rimArr = new Array(N).fill(0);                        // per-point: brain silhouette-edge strength (for gold contour)
+const bn = BRAIN.n, bp = BRAIN.pts, brim = BRAIN.rim || [];
 
 /* centroid + radius of the brain mask (for the volume bulge) */
 let cx = 0, cy = 0;
@@ -28,7 +29,8 @@ for (let i = 0; i < N; i++){
   const src = Math.floor((i / N) * bn) * 3;
   const nx = bp[src], ny = bp[src + 1];
   const b = bp[src + 2];
-  bri[i] = b;                                              // engraving brightness = gyri ridges + outline
+  bri[i] = b;                                              // source brightness = gyri shading
+  rimArr[i] = brim[src / 3] || 0;                          // silhouette-edge strength -> gold contour
   const r = Math.min(1, Math.hypot(nx - cx, ny - cy) / 0.46);
   const bulge = Math.max(0, 1 - r * r);                    // 1 centre .. 0 edge
   const round = Math.sqrt(bulge);                          // ROUNDED ellipsoid cross-section (not a flat lens)
@@ -127,6 +129,6 @@ for (let i = 0; i < N; i++){
 }
 
 const round = (arr) => arr.map((v) => +v.toFixed(4));
-const out = { n: N, brain: round(brain), bulb: round(bulb), earth: round(earth), bri: bri.map((v) => +v.toFixed(2)), land };
+const out = { n: N, brain: round(brain), bulb: round(bulb), earth: round(earth), bri: bri.map((v) => +v.toFixed(2)), land, rim: rimArr.map((v) => +v.toFixed(2)) };
 fs.writeFileSync(path.join(DIR, "points.js"), "window.__SHAPES__=" + JSON.stringify(out) + ";\n");
 console.log("wrote points.js  n=" + N + "  bytes=" + fs.statSync(path.join(DIR, "points.js")).size);

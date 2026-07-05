@@ -1,10 +1,10 @@
-/* PNG -> particle mask sampler. Turns ANY brain image (bright structure on a dark
-   background) into points.brain.js for build-shapes.js.
-   Places particles weighted by brightness^gamma, so bright gyri ridges / bold outlines
-   get dense coverage and dark grooves/background stay sparse -> the fold structure reads.
+/* PNG -> particle mask sampler. Turns a brain image (bright form on a dark background)
+   into points.brain.js for build-shapes.js.
+   - places particles weighted by brightness^gamma (bright tissue dense, dark grooves sparse)
+   - stores per-point brightness (gyri shading) AND a rim flag (1 near the silhouette edge)
+     so the render can trace the brain OUTLINE in gold, like the reference.
    Usage: node sample-brain.js [input.png] [N] [gamma]
-   e.g.   node sample-brain.js brain-src.png 20000 1.7
-   Dev-only, run once when the source image changes. */
+   Best source: a filled/photographed brain on black (not line-art). Dev-only. */
 const fs = require("fs"), zlib = require("zlib"), path = require("path");
 
 function decodePNG(buf){
@@ -36,34 +36,61 @@ function decodePNG(buf){
   return { w, h, bpp, px: out };
 }
 
-const IN = process.argv[2] || "brain-src.png";
-const N = parseInt(process.argv[3] || "20000", 10);
-const GAMMA = parseFloat(process.argv[4] || "1.7");
+const IN = process.argv[2] || "brain-new.png";
+const N = parseInt(process.argv[3] || "22000", 10);
+const GAMMA = parseFloat(process.argv[4] || "1.1", 10);
 const { w, h, bpp, px } = decodePNG(fs.readFileSync(path.join(__dirname, IN)));
 
-// luma map + max for rejection sampling
 const luma = new Float32Array(w * h); let maxL = 0;
 for (let i = 0; i < w * h; i++){
   const r = px[i * bpp], g = bpp >= 3 ? px[i * bpp + 1] : r, b = bpp >= 3 ? px[i * bpp + 2] : r;
   const L = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  const wgt = Math.pow(L, GAMMA);              // brightness^gamma -> favour bold structure over faint fill
+  const wgt = Math.pow(L, GAMMA);
   luma[i] = wgt; if (wgt > maxL) maxL = wgt;
 }
+const lin = (i) => Math.pow(luma[i], 1 / GAMMA);       // back to linear luma 0..1
+
+// rim = fraction of surrounding samples that are background (dark) -> 1 near the silhouette edge, 0 deep inside
+const R = Math.max(5, Math.round(Math.min(w, h) * 0.022));
+const DIRS = [[1,0],[-1,0],[0,1],[0,-1],[0.7,0.7],[-0.7,0.7],[0.7,-0.7],[-0.7,-0.7]];
+const BG = 0.14;
+function rimAt(xi, yi){
+  let bg = 0;
+  for (const [dx, dy] of DIRS){
+    const x = Math.round(xi + dx * R), y = Math.round(yi + dy * R);
+    if (x < 0 || y < 0 || x >= w || y >= h){ bg++; continue; }
+    if (lin(y * w + x) < BG) bg++;
+  }
+  return bg / DIRS.length;
+}
+
+// Sobel gradient magnitude -> edges = gyri fold lines + brain contour, so particles TRACE structure (not fill)
+const grad = new Float32Array(w * h); let maxG = 0;
+for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++){
+  const i = y * w + x;
+  const gx = -lin(i-w-1) - 2*lin(i-1) - lin(i+w-1) + lin(i-w+1) + 2*lin(i+1) + lin(i+w+1);
+  const gy = -lin(i-w-1) - 2*lin(i-w) - lin(i-w+1) + lin(i+w-1) + 2*lin(i+w) + lin(i+w+1);
+  const g = Math.sqrt(gx*gx + gy*gy);
+  grad[i] = g; if (g > maxG) maxG = g;
+}
+const EDGEFILL = 0.18;                                  // edges dominate; small luma term keeps the interior from going empty
+const wMax = maxG + EDGEFILL * maxL;
 
 let seed = 20260705;
 const rnd = () => (seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296;
 const aspect = w / h;
-const pts = []; let made = 0, guard = 0;
+const pts = [], rim = []; let made = 0, guard = 0;
 while (made < N && guard < N * 400){
   guard++;
   const xi = (rnd() * w) | 0, yi = (rnd() * h) | 0, idx = yi * w + xi;
-  if (rnd() * maxL > luma[idx]) continue;      // reject dark pixels -> particles land on bright structure
-  const nx = xi / w - 0.5, ny = (yi / h - 0.5) / aspect;   // proportional, centred, y-down (build flips)
-  const L = luma[idx] === 0 ? 0 : Math.pow(luma[idx], 1 / GAMMA);                // linear luma 0..1
-  const bri = Math.max(0, Math.min(1, (L - 0.42) * 1.8 + 0.42));                 // contrast stretch -> deeper grooves, brighter ridges (folds read)
+  if (rnd() * wMax > grad[idx] + EDGEFILL * luma[idx]) continue;   // land on fold-line edges (structure), light fill
+  const nx = xi / w - 0.5, ny = (yi / h - 0.5) / aspect;
+  const L = lin(idx);
+  const bri = Math.max(0, Math.min(1, (L - 0.42) * 1.8 + 0.42));   // contrast stretch -> deeper grooves, brighter ridges
   pts.push(+nx.toFixed(4), +ny.toFixed(4), +bri.toFixed(2));
+  rim.push(+rimAt(xi, yi).toFixed(2));
   made++;
 }
-const out = { w: +aspect.toFixed(4), n: made, pts };
+const out = { w: +aspect.toFixed(4), n: made, pts, rim };
 fs.writeFileSync(path.join(__dirname, "points.brain.js"), "window.__BRAIN__=" + JSON.stringify(out) + ";\n");
-console.log("sampled " + made + "/" + N + " pts from " + IN + " (" + w + "x" + h + ", gamma " + GAMMA + ") -> points.brain.js  guard=" + guard);
+console.log("sampled " + made + "/" + N + " from " + IN + " (" + w + "x" + h + ", gamma " + GAMMA + ", rimR " + R + ") -> points.brain.js");
