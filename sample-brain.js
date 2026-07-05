@@ -38,7 +38,7 @@ function decodePNG(buf){
 
 const IN = process.argv[2] || "brain-src.png";
 const N = parseInt(process.argv[3] || "22000", 10);
-const CONTOUR_FRAC = 0.45;
+const CONTOUR_FRAC = 0.52;
 const TH = 0.14;                                          // luma above this = "drawn / brain"
 const { w, h, bpp, px } = decodePNG(fs.readFileSync(path.join(__dirname, IN)));
 
@@ -57,17 +57,17 @@ for (let y = 1; y < h-1; y++) for (let x = 1; x < w-1; x++){
 }
 
 // coarse-cell silhouette: a cell is "brain" if any pixel in it is drawn -> closes hatching gaps
-const C = Math.max(3, Math.round(Math.min(w, h) / 150));
+const C = Math.max(4, Math.round(Math.min(w, h) / 115));   // coarser cells -> gaps close into ONE solid region -> clean OUTER contour
 const cw = Math.ceil(w / C), ch = Math.ceil(h / C);
 let cell = new Uint8Array(cw * ch);
 for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (L[y*w+x] > TH) cell[(y/C|0)*cw + (x/C|0)] = 1;
-// fill interior holes: empty cell with >=5 filled 8-neighbours becomes filled (2 passes)
-for (let pass = 0; pass < 2; pass++){
+// fill interior holes so the brain is ONE solid region (boundary = outer silhouette only)
+for (let pass = 0; pass < 4; pass++){
   const nx = cell.slice();
   for (let cy = 1; cy < ch-1; cy++) for (let cx = 1; cx < cw-1; cx++){
     const ci = cy*cw+cx; if (cell[ci]) continue;
     let n = 0; for (let dy=-1;dy<=1;dy++) for (let dx=-1;dx<=1;dx++) if (!(dx===0&&dy===0)) n += cell[(cy+dy)*cw+cx+dx];
-    if (n >= 5) nx[ci] = 1;
+    if (n >= 4) nx[ci] = 1;
   }
   cell = nx;
 }
@@ -90,7 +90,7 @@ const nC = Math.min(contourCells.length ? N*CONTOUR_FRAC : 0, N);
 for (let k = 0; k < nC; k++){
   const c = contourCells[(rnd()*contourCells.length)|0];
   const cx = c % cw, cy = (c/cw)|0;
-  push(cx*C + rnd()*C, cy*C + rnd()*C, 1.0, 1.0);           // rim=1 -> gold, bright
+  push(cx*C + C*(0.3+rnd()*0.4), cy*C + C*(0.3+rnd()*0.4), 1.0, 1.0);   // tight jitter -> a thin clean outline, rim=1
 }
 // 2) INTERIOR — edge-weighted fill (gyri folds), coloured by brightness
 let made = pts.length/3, guard = 0;

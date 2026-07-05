@@ -233,7 +233,7 @@
     // additive bloom = the warm gold glow / hot cores of the reference
     const composer=new EffectComposer(renderer);
     composer.addPass(new RenderPass(scene,camera));
-    const bloom=new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),0.42,0.6,0.20);
+    const bloom=new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),0.36,0.6,0.22);
     composer.addPass(bloom);
 
     const N=S.n;
@@ -326,7 +326,7 @@
           // intro assemble from the dispersed home
           vec3 pos = mix(aScatter, shape, uProgress);
           vec4 mv = modelViewMatrix * vec4(pos, 1.0);
-          gl_PointSize = aSize * (uScale / -mv.z) * (1.0 - wE*(1.0-aAmb)*0.40);  // crisper (smaller) triangles on the globe
+          gl_PointSize = aSize * (uScale / -mv.z) * (1.0 - wE*(1.0-aAmb)*0.40) * (1.0 - wB*(1.0-aAmb)*aRim*0.45);  // crisper globe + thin brain contour
           gl_Position = projectionMatrix * mv;
           float dist = -mv.z;
           vColor = color * clamp(600.0 / dist, 0.14, 1.40);      // DEPTH FOG: far sinks to black; near capped low -> no blowout
@@ -339,7 +339,7 @@
           // BRAIN: keep the interior full-spectrum, trace the silhouette OUTLINE in gold (reference look).
           float rim = smoothstep(0.12, 0.45, aRim);
           vColor *= 1.0 + wB*(1.0-aAmb)*aRidge*0.5;                             // lit gyri pop a touch
-          vColor = mix(vColor, vec3(1.0,0.72,0.26)*2.1, wB*(1.0-aAmb)*rim);     // glowing gold contour on the rim
+          vColor = mix(vColor, vec3(1.0,0.80,0.42)*2.5, wB*(1.0-aAmb)*rim);     // bright gold-white contour on the rim
           vColor *= 1.0 - wB*aAmb*0.5;                                          // dim ambient over the brain
           vRot = aRot + uTime * 0.18;                            // slow glyph spin
           vTw = 0.82 + 0.18 * sin(uTime*1.4 + aRnd*30.0);        // twinkle
