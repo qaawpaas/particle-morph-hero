@@ -2,3 +2,6 @@ node_modules/
 reference/
 *.DS_Store
 _shot.png
+
+# user-provided brain source photo (copyright — not republished; derived points.brain.js is committed)
+brain-new.png

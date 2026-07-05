@@ -59,7 +59,8 @@ while (made < N && guard < N * 400){
   const xi = (rnd() * w) | 0, yi = (rnd() * h) | 0, idx = yi * w + xi;
   if (rnd() * maxL > luma[idx]) continue;      // reject dark pixels -> particles land on bright structure
   const nx = xi / w - 0.5, ny = (yi / h - 0.5) / aspect;   // proportional, centred, y-down (build flips)
-  const bri = Math.min(1, luma[idx] === 0 ? 0 : Math.pow(luma[idx], 1 / GAMMA)); // back to linear luma 0..1
+  const L = luma[idx] === 0 ? 0 : Math.pow(luma[idx], 1 / GAMMA);                // linear luma 0..1
+  const bri = Math.max(0, Math.min(1, (L - 0.42) * 1.8 + 0.42));                 // contrast stretch -> deeper grooves, brighter ridges (folds read)
   pts.push(+nx.toFixed(4), +ny.toFixed(4), +bri.toFixed(2));
   made++;
 }
